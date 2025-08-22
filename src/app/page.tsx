@@ -76,9 +76,9 @@ export default function Home() {
 
 	return (
 		<div className="font-sans min-h-screen p-6 sm:p-10 flex flex-col gap-8">
-			<header className="flex items-center gap-3">
-				<Image className="dark:invert" src="/next.svg" alt="Logo" width={120} height={26} />
-				<h1 className="text-2xl font-bold">Amazon ランダム商品（条件付き）</h1>
+			<header className="text-center">
+				<h1 className="text-3xl font-bold text-gray-800">Amazon ランダム商品（条件付き）</h1>
+				<p className="text-gray-600 mt-2">罰ゲーム・サプライズに最適！条件を設定してランダム商品を表示</p>
 			</header>
 
 			<section className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -130,14 +130,14 @@ export default function Home() {
 				<button
 					onClick={spin}
 					disabled={isSpinning}
-					className="md:col-span-4 bg-foreground text-background rounded px-4 py-2 disabled:opacity-60"
+					className="md:col-span-4 bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-3 disabled:opacity-60 font-medium text-lg"
 				>
-					{isSpinning ? "回転中..." : "ルーレット開始"}
+					{isSpinning ? "🎲 回転中..." : "🎲 ルーレット開始"}
 				</button>
 			</section>
 
 			{errorMessage && (
-				<p className="text-red-500 text-sm">{errorMessage}</p>
+				<p className="text-red-500 text-sm text-center">{errorMessage}</p>
 			)}
 
 			<section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -172,7 +172,7 @@ export default function Home() {
 				))}
 			</section>
 
-			<footer className="text-xs text-gray-500">
+			<footer className="text-xs text-gray-500 text-center">
 				当サイトは Amazonアソシエイト を利用しています。表示価格・在庫は遷移先をご確認ください。
 			</footer>
 		</div>
