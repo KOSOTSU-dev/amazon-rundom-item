@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
-import Image from "next/image";
 import { Product } from "@/lib/products";
+import ProductTicker from "@/components/ProductTicker";
 
 export default function Home() {
 	const [minPrice, setMinPrice] = useState<string>("500");
@@ -12,6 +12,7 @@ export default function Home() {
 	const [items, setItems] = useState<Product[]>([]);
 	const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 	const [errorMessage, setErrorMessage] = useState<string>("");
+	const [hasStarted, setHasStarted] = useState<boolean>(false);
 
 	const categories = useMemo(
 		() => [
@@ -31,6 +32,7 @@ export default function Home() {
 			setErrorMessage("");
 			setIsSpinning(true);
 			setSelectedIndex(null);
+			setHasStarted(true);
 
 			// 実装した商品データベースAPIを呼び出し
 			const params = new URLSearchParams({
@@ -72,6 +74,13 @@ export default function Home() {
 			setErrorMessage("取得に失敗しました。時間を置いて再度お試しください。");
 			setIsSpinning(false);
 		}
+	};
+
+	const resetGame = () => {
+		setItems([]);
+		setSelectedIndex(null);
+		setHasStarted(false);
+		setErrorMessage("");
 	};
 
 	return (
@@ -127,50 +136,66 @@ export default function Home() {
 						成人向けを除外
 					</label>
 				</div>
-				<button
-					onClick={spin}
-					disabled={isSpinning}
-					className="md:col-span-4 bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-3 disabled:opacity-60 font-medium text-lg"
-				>
-					{isSpinning ? "🎲 回転中..." : "🎲 ルーレット開始"}
-				</button>
+				<div className="md:col-span-4 flex gap-4">
+					<button
+						onClick={spin}
+						disabled={isSpinning}
+						className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded px-4 py-3 disabled:opacity-60 font-medium text-lg"
+					>
+						{isSpinning ? "🎲 回転中..." : "🎲 ルーレット開始"}
+					</button>
+					{hasStarted && (
+						<button
+							onClick={resetGame}
+							className="bg-gray-500 hover:bg-gray-600 text-white rounded px-4 py-3 font-medium"
+						>
+							リセット
+						</button>
+					)}
+				</div>
 			</section>
 
 			{errorMessage && (
 				<p className="text-red-500 text-sm text-center">{errorMessage}</p>
 			)}
 
-			<section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-				{items.map((item, idx) => (
-					<div
-						key={item.asin || idx}
-						className={`border rounded p-3 transition-transform ${
-							selectedIndex === idx ? "ring-2 ring-blue-500 scale-105" : ""
-						}`}
-					>
-						<div className="aspect-square relative mb-2 bg-[#f5f5f5]">
-							{item.image ? (
-								/* eslint-disable @next/next/no-img-element */
-								<img src={item.image} alt={item.title} className="object-contain w-full h-full" />
-							) : (
-								<div className="w-full h-full flex items-center justify-center text-xs text-gray-500">No Image</div>
+			{/* ルーレット開始前のティッカー表示 */}
+			{!hasStarted && <ProductTicker />}
+
+			{/* ルーレット結果表示 */}
+			{hasStarted && (
+				<section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+					{items.map((item, idx) => (
+						<div
+							key={item.asin || idx}
+							className={`border rounded p-3 transition-transform ${
+								selectedIndex === idx ? "ring-2 ring-blue-500 scale-105" : ""
+							}`}
+						>
+							<div className="aspect-square relative mb-2 bg-[#f5f5f5]">
+								{item.image ? (
+									/* eslint-disable @next/next/no-img-element */
+									<img src={item.image} alt={item.title} className="object-contain w-full h-full" />
+								) : (
+									<div className="w-full h-full flex items-center justify-center text-xs text-gray-500">No Image</div>
+								)}
+							</div>
+							<div className="text-sm font-medium line-clamp-2 min-h-[2.5rem]">{item.title}</div>
+							{item.price && <div className="text-sm mt-1">¥{item.price.toLocaleString()}</div>}
+							{item.link && (
+								<a
+									href={item.link}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="text-blue-600 text-sm underline mt-2 inline-block"
+								>
+									商品ページへ
+								</a>
 							)}
 						</div>
-						<div className="text-sm font-medium line-clamp-2 min-h-[2.5rem]">{item.title}</div>
-						{item.price && <div className="text-sm mt-1">¥{item.price.toLocaleString()}</div>}
-						{item.link && (
-							<a
-								href={item.link}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-blue-600 text-sm underline mt-2 inline-block"
-							>
-								商品ページへ
-							</a>
-						)}
-					</div>
-				))}
-			</section>
+					))}
+				</section>
+			)}
 
 			<footer className="text-xs text-gray-500 text-center">
 				当サイトは Amazonアソシエイト を利用しています。表示価格・在庫は遷移先をご確認ください。
