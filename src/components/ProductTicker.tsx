@@ -28,16 +28,16 @@ export default function ProductTicker() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	// シームレスループ用に重複させる（配列は不変）
-	const loopBlocks = useMemo(() => [...baseBlocks, ...baseBlocks], [baseBlocks]);
+	// シームレスループ用に3つ重複させる（カクつき完全防止）
+	const loopBlocks = useMemo(() => [...baseBlocks, ...baseBlocks, ...baseBlocks], [baseBlocks]);
 	const totalWidth = baseBlocks.length * itemWidthWithGap; // 1周分の距離
 
 	return (
 		<div className="overflow-hidden bg-gray-50 py-8" ref={ref}>
 			<motion.div
-				// 左→右：マイナスから0へ
+				// 左→右：マイナスから0へ（より滑らかに）
 				animate={{ x: [ -totalWidth, 0 ] }}
-				transition={{ duration: 30, ease: "linear", repeat: Infinity }}
+				transition={{ duration: 60, ease: "linear", repeat: Infinity }}
 				style={{ willChange: "transform" }}
 			>
 				<div
