@@ -2,10 +2,11 @@
 import { useState, useMemo } from "react";
 import { Product } from "@/lib/products";
 import ProductTicker from "@/components/ProductTicker";
+import PriceSlider from "@/components/PriceSlider";
 
 export default function Home() {
-	const [minPrice, setMinPrice] = useState<string>("500");
-	const [maxPrice, setMaxPrice] = useState<string>("3000");
+	const [minPrice, setMinPrice] = useState<number>(500);
+	const [maxPrice, setMaxPrice] = useState<number>(3000);
 	const [category, setCategory] = useState<string>("all");
 	const [excludeAdult, setExcludeAdult] = useState<boolean>(true);
 	const [isSpinning, setIsSpinning] = useState<boolean>(false);
@@ -27,6 +28,11 @@ export default function Home() {
 		[]
 	);
 
+	const handlePriceChange = (min: number, max: number) => {
+		setMinPrice(min);
+		setMaxPrice(max);
+	};
+
 	const spin = async () => {
 		try {
 			setErrorMessage("");
@@ -36,8 +42,8 @@ export default function Home() {
 
 			// 実装した商品データベースAPIを呼び出し
 			const params = new URLSearchParams({
-				minPrice,
-				maxPrice,
+				minPrice: minPrice.toString(),
+				maxPrice: maxPrice.toString(),
 				category,
 				excludeAdult: excludeAdult.toString(),
 				limit: "12",
@@ -90,25 +96,12 @@ export default function Home() {
 				<p className="text-gray-600 mt-2">罰ゲーム・サプライズに最適！条件を設定してランダム商品を表示</p>
 			</header>
 
-			<section className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-				<div className="flex flex-col gap-2">
-					<label className="text-sm">最低価格（円）</label>
-					<input
-						type="number"
-						className="border rounded px-3 py-2 bg-background"
-						value={minPrice}
-						onChange={(e) => setMinPrice(e.target.value)}
-						min={0}
-					/>
-				</div>
-				<div className="flex flex-col gap-2">
-					<label className="text-sm">最高価格（円）</label>
-					<input
-						type="number"
-						className="border rounded px-3 py-2 bg-background"
-						value={maxPrice}
-						onChange={(e) => setMaxPrice(e.target.value)}
-						min={0}
+			<section className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+				<div className="md:col-span-2">
+					<PriceSlider
+						minPrice={minPrice}
+						maxPrice={maxPrice}
+						onChange={handlePriceChange}
 					/>
 				</div>
 				<div className="flex flex-col gap-2">
@@ -136,7 +129,7 @@ export default function Home() {
 						成人向けを除外
 					</label>
 				</div>
-				<div className="md:col-span-4 flex gap-4">
+				<div className="md:col-span-3 flex gap-4">
 					<button
 						onClick={spin}
 						disabled={isSpinning}
