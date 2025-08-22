@@ -1,12 +1,11 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { motion, useAnimation } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { products } from "@/lib/products";
 
 export default function ProductTicker() {
 	const ref = useRef<HTMLDivElement>(null);
-	const [productBlocks, setProductBlocks] = useState(products);
-	const controls = useAnimation();
+	const [baseBlocks, setBaseBlocks] = useState(products);
 
 	// 1つの商品の横の長さ
 	const itemWidth = 192; // w-48 = 192px
@@ -15,7 +14,7 @@ export default function ProductTicker() {
 	// 商品の横幅と、商品間の合計値
 	const itemWidthWithGap = itemWidth + gap;
 
-	// 初期レンダリング時に横幅の穴埋め
+	// 横幅の穴埋め（画面幅を満たすまで繰り返し）
 	useEffect(() => {
 		if (!ref.current) return;
 		const containerWidth = ref.current.offsetWidth;
@@ -24,49 +23,31 @@ export default function ProductTicker() {
 			const times = Math.ceil(containerWidth / currentWidth);
 			const filled: typeof products = [];
 			for (let i = 0; i < times; i++) filled.push(...products);
-			setProductBlocks(filled);
+			setBaseBlocks(filled);
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
-	// 左→右へ無限ループ
-	useEffect(() => {
-		let isCancelled = false;
-		(async () => {
-			while (!isCancelled) {
-				// 1カード分、右方向に移動
-				await controls.start({
-					x: itemWidthWithGap,
-					transition: { duration: 1.2, ease: "linear" },
-				});
-				// 配列を1回だけ回転（末尾を先頭へ）
-				setProductBlocks(prev => {
-					if (prev.length === 0) return prev;
-					const next = [...prev];
-					const last = next.pop();
-					if (last) next.unshift(last);
-					return next;
-				});
-				// 位置リセット
-				await controls.set({ x: 0 });
-			}
-		})();
-		return () => {
-			isCancelled = true;
-		};
-	}, [controls, itemWidthWithGap]);
+	// シームレスループ用に重複させる（配列は不変）
+	const loopBlocks = useMemo(() => [...baseBlocks, ...baseBlocks], [baseBlocks]);
+	const totalWidth = baseBlocks.length * itemWidthWithGap; // 1周分の距離
 
 	return (
 		<div className="overflow-hidden bg-gray-50 py-8" ref={ref}>
-			<motion.div animate={controls} style={{ x: 0 }}>
+			<motion.div
+				// 左→右：マイナスから0へ
+				animate={{ x: [ -totalWidth, 0 ] }}
+				transition={{ duration: 30, ease: "linear", repeat: Infinity }}
+				style={{ willChange: "transform" }}
+			>
 				<div
 					className="flex gap-6"
 					style={{
-						width: `${itemWidthWithGap * productBlocks.length}px`,
+						width: `${itemWidthWithGap * loopBlocks.length}px`,
 						marginLeft: `-${itemWidth}px`,
 					}}
 				>
-					{productBlocks.map((product, index) => (
+					{loopBlocks.map((product, index) => (
 						<div
 							key={`${product.asin}-${index}`}
 							className="flex-shrink-0 bg-white rounded-lg shadow-sm border p-4"
