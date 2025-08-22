@@ -5,6 +5,7 @@ import { products } from "@/lib/products";
 
 export default function ProductTicker() {
 	const ref = useRef<HTMLDivElement>(null);
+	const [productBlocks, setProductBlocks] = useState(products);
 
 	// 1つの商品の横の長さ
 	const itemWidth = 192; // w-48 = 192px
@@ -12,39 +13,36 @@ export default function ProductTicker() {
 	const gap = 24; // gap-6 = 24px
 	// 商品の横幅と、商品間の合計値
 	const itemWidthWithGap = itemWidth + gap;
-	// 商品の数
-	const numberOfContents = products.length;
-	// 横に流れる商品のシーケンス合計
-	const [productBlocks, setProductBlocks] = useState(products);
 
 	useEffect(() => {
+		if (!ref.current) return;
+
 		// 「横幅の穴埋め」
 		// windowの長さよりコンテンツ数が少ない場合
 		// 横幅 < 商品の合計の長さ となるように、商品群(シーケンス)をループさせて配列に加える
-		if (
-			ref.current?.offsetWidth &&
-			productBlocks.length * itemWidthWithGap < ref.current.offsetWidth
-		) {
+		const containerWidth = ref.current.offsetWidth;
+		const currentWidth = products.length * itemWidthWithGap;
+		
+		if (currentWidth < containerWidth) {
 			// 全体の長さから何個分　足りていないのか
-			const fillableNumberOfContents: number = Math.floor(
-				(ref.current.offsetWidth - productBlocks.length * itemWidthWithGap) /
-					numberOfContents
+			const fillableNumberOfContents = Math.floor(
+				(containerWidth - currentWidth) / products.length
 			);
 
 			// シーケンスを追加するのは何個か
-			const fillableNumberOfSequence: number = Math.ceil(
-				fillableNumberOfContents / numberOfContents
+			const fillableNumberOfSequence = Math.ceil(
+				fillableNumberOfContents / products.length
 			);
 
 			// シーケンス分　コンテンツを追加
-			const newProductBlocks = [...productBlocks];
-			const _ = [...Array(fillableNumberOfSequence)].map((_, index) => {
-				newProductBlocks.push(...productBlocks);
-			});
+			const newProductBlocks = [...products];
+			for (let i = 0; i < fillableNumberOfSequence; i++) {
+				newProductBlocks.push(...products);
+			}
 
 			setProductBlocks(newProductBlocks);
 		}
-	}, [ref.current]); //DOMがレンダリングされ、横幅が確定した瞬間に実行される
+	}, []);
 
 	return (
 		<div className="overflow-hidden bg-gray-50 py-8" ref={ref}>
@@ -65,9 +63,11 @@ export default function ProductTicker() {
 						if (xValue >= itemWidthWithGap) {
 							//１マス分動いたら発動する処理
 							const newProductBlocks = [...productBlocks];
-							newProductBlocks.unshift(productBlocks[productBlocks.length - 1]); //冒頭に末尾の商品を追加
-							newProductBlocks.pop(); //末端の商品を消去する
-							setProductBlocks(newProductBlocks); //変更した配列を適応
+							// 冒頭に末尾の商品を追加
+							newProductBlocks.unshift(productBlocks[productBlocks.length - 1]);
+							// 末端の商品を消去する
+							newProductBlocks.pop();
+							setProductBlocks(newProductBlocks);
 						}
 					}}
 				>
