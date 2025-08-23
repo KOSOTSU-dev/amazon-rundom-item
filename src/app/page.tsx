@@ -2,7 +2,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Product } from "@/lib/products";
 import ProductTicker from "@/components/ProductTicker";
-import { soundEffects } from "@/lib/soundEffects";
 
 export default function Home() {
 	const [items, setItems] = useState<Product[]>([]);
@@ -19,23 +18,7 @@ export default function Home() {
 		excludeAdult: true
 	});
 
-	// 効果音の初期化
-	useEffect(() => {
-		// ユーザーインタラクション時に音声コンテキストを開始
-		const handleUserInteraction = () => {
-			soundEffects.resume();
-			document.removeEventListener('click', handleUserInteraction);
-			document.removeEventListener('keydown', handleUserInteraction);
-		};
 
-		document.addEventListener('click', handleUserInteraction);
-		document.addEventListener('keydown', handleUserInteraction);
-
-		return () => {
-			document.removeEventListener('click', handleUserInteraction);
-			document.removeEventListener('keydown', handleUserInteraction);
-		};
-	}, []);
 
 	const categories = useMemo(() => [
 		{ value: "all", label: "全カテゴリ" },
@@ -127,9 +110,6 @@ export default function Home() {
 		setSelectedIndex(-1);
 
 		try {
-			// ドラムロール音を開始
-			await soundEffects.generateDrumroll(2000);
-
 			const data = { items };
 			const pick = Math.floor(Math.random() * data.items.length);
 
@@ -141,11 +121,8 @@ export default function Home() {
 			await new Promise(resolve => setTimeout(resolve, 500));
 
 			// カードをバババババと切り替える
-			const switchInterval = setInterval(async () => {
+			const switchInterval = setInterval(() => {
 				currentSwitch++;
-				
-				// 回転音を再生
-				soundEffects.generateSpinSound(50);
 				
 				// ランダムなカードを表示（最後の数回は当選商品に近づける）
 				let displayIndex;
@@ -166,9 +143,6 @@ export default function Home() {
 					setCurrentDisplayIndex(pick);
 					setSelectedIndex(pick);
 					setIsSpinning(false);
-
-					// 当選音（ファンファーレ）を再生
-					await soundEffects.generateFanfare();
 				}
 			}, 100); // 100ms間隔で切り替え
 
@@ -186,9 +160,6 @@ export default function Home() {
 		setErrorMessage("");
 		setIsSpinning(false);
 		setCurrentDisplayIndex(0);
-
-		// 音声コンテキストを一時停止
-		soundEffects.suspend();
 
 		// 初期商品を再読み込み
 		const loadInitialItems = async () => {

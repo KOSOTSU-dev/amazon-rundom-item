@@ -75,9 +75,12 @@ export default function ProductTicker() {
 						}}
 					>
 						{loopBlocks.map((product, index) => (
-							<div
+							<a
 								key={`${product.asin}-${index}`}
-								className="flex-shrink-0 bg-white rounded-lg shadow-sm border p-4"
+								href={product.link}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="flex-shrink-0 bg-white rounded-lg shadow-sm border p-4 hover:shadow-md hover:border-[#FF9900] transition-all duration-200 cursor-pointer"
 								style={{ width: `${itemWidth}px` }}
 							>
 								<div className="aspect-square relative mb-3 bg-gray-100 rounded overflow-hidden">
@@ -90,7 +93,7 @@ export default function ProductTicker() {
 										priority={index < 3} // 最初の3つの画像のみ優先読み込み
 									/>
 								</div>
-								<div className="text-sm font-medium line-clamp-2 mb-2 min-h-[2.5rem]">
+								<div className="text-sm font-medium line-clamp-2 mb-2 min-h-[2.5rem] text-gray-900 hover:text-[#FF9900] transition-colors">
 									{product.title}
 								</div>
 								<div className="text-sm text-gray-600 mb-2">
@@ -104,7 +107,10 @@ export default function ProductTicker() {
 									{product.category === "books" && "書籍"}
 									{product.category === "beauty" && "コスメ"}
 								</div>
-							</div>
+								<div className="text-xs text-[#FF9900] font-medium mt-2">
+									Amazonで見る →
+								</div>
+							</a>
 						))}
 					</div>
 				</motion.div>
