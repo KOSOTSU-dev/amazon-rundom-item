@@ -1,227 +1,423 @@
 "use client";
-import { useState, useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Product } from "@/lib/products";
 import ProductTicker from "@/components/ProductTicker";
-import PriceSlider from "@/components/PriceSlider";
 
 export default function Home() {
-	const [minPrice, setMinPrice] = useState<number>(500);
-	const [maxPrice, setMaxPrice] = useState<number>(3000);
-	const [category, setCategory] = useState<string>("all");
-	const [excludeAdult, setExcludeAdult] = useState<boolean>(true);
-	const [isSpinning, setIsSpinning] = useState<boolean>(false);
 	const [items, setItems] = useState<Product[]>([]);
-	const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-	const [errorMessage, setErrorMessage] = useState<string>("");
-	const [hasStarted, setHasStarted] = useState<boolean>(false);
+	const [isLoading, setIsLoading] = useState(false);
+	const [isSpinning, setIsSpinning] = useState(false);
+	const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+	const [errorMessage, setErrorMessage] = useState("");
+	const [hasStarted, setHasStarted] = useState(false);
+	const [currentDisplayIndex, setCurrentDisplayIndex] = useState<number>(0);
+	const [currentFilters, setCurrentFilters] = useState({
+		minPrice: 1,
+		maxPrice: 10000,
+		category: 'all',
+		excludeAdult: true
+	});
 
-	const categories = useMemo(
-		() => [
-			{ value: "all", label: "すべて" },
-			{ value: "toys", label: "おもちゃ" },
-			{ value: "grocery", label: "食品・飲料" },
-			{ value: "household", label: "日用品" },
-			{ value: "electronics", label: "家電" },
-			{ value: "books", label: "書籍" },
-			{ value: "beauty", label: "コスメ" },
-		],
-		[]
-	);
+	// 効果音用のAudioオブジェクト
+	const spinAudioRef = useRef<HTMLAudioElement | null>(null);
+	const winAudioRef = useRef<HTMLAudioElement | null>(null);
 
-	const handlePriceChange = (min: number, max: number) => {
-		setMinPrice(min);
-		setMaxPrice(max);
-	};
+	// 効果音の初期化
+	useEffect(() => {
+		// ルーレット回転音（じゃらららら）
+		spinAudioRef.current = new Audio('/sounds/spin.mp3');
+		spinAudioRef.current.loop = true;
+		spinAudioRef.current.volume = 0.3;
 
-	const spin = async () => {
-		try {
-			setErrorMessage("");
-			setIsSpinning(true);
-			setSelectedIndex(null);
-			setHasStarted(true);
+		// 当選音
+		winAudioRef.current = new Audio('/sounds/win.mp3');
+		winAudioRef.current.volume = 0.5;
 
-			// 実装した商品データベースAPIを呼び出し
-			const params = new URLSearchParams({
-				minPrice: minPrice.toString(),
-				maxPrice: maxPrice.toString(),
-				category,
-				excludeAdult: excludeAdult.toString(),
-				limit: "12",
-			});
-
-			const res = await fetch(`/api/random-items?${params}`);
-			const data = await res.json();
-
-			if (data.error) {
-				setErrorMessage(data.error);
-				setIsSpinning(false);
-				return;
+		// クリーンアップ
+		return () => {
+			if (spinAudioRef.current) {
+				spinAudioRef.current.pause();
+				spinAudioRef.current = null;
 			}
+			if (winAudioRef.current) {
+				winAudioRef.current.pause();
+				winAudioRef.current = null;
+			}
+		};
+	}, []);
 
+	const categories = useMemo(() => [
+		{ value: "all", label: "全カテゴリ" },
+		{ value: "toys", label: "おもちゃ" },
+		{ value: "grocery", label: "食品・飲料" },
+		{ value: "household", label: "日用品" },
+		{ value: "electronics", label: "家電" },
+		{ value: "books", label: "書籍" },
+		{ value: "beauty", label: "コスメ" },
+	], []);
+
+	// 初期商品読み込み
+	useEffect(() => {
+		const loadInitialItems = async () => {
+			try {
+				const params = new URLSearchParams({
+					minPrice: '1',
+					maxPrice: '10000',
+					category: 'all',
+					excludeAdult: 'true',
+					limit: '50'
+				});
+
+				const response = await fetch(`/api/random-items?${params}`);
+				if (!response.ok) throw new Error('商品の取得に失敗しました');
+
+				const data = await response.json();
+				console.log('Loaded items:', data.items.length);
+				setItems(data.items);
+			} catch (error) {
+				console.error('Initial load error:', error);
+				setErrorMessage('初期商品の読み込みに失敗しました。');
+			}
+		};
+
+		loadInitialItems();
+	}, []);
+
+	// フィルター更新イベントのリスナー
+	useEffect(() => {
+		const handleFilterUpdate = (event: CustomEvent) => {
+			const { minPrice, maxPrice, category, excludeAdult } = event.detail;
+			setCurrentFilters({ minPrice, maxPrice, category, excludeAdult });
+			fetchItems(minPrice, maxPrice, category, excludeAdult);
+		};
+
+		window.addEventListener('filterUpdate', handleFilterUpdate as EventListener);
+		return () => {
+			window.removeEventListener('filterUpdate', handleFilterUpdate as EventListener);
+		};
+	}, []);
+
+	// 商品データ取得
+	const fetchItems = async (minPrice?: number, maxPrice?: number, category?: string, excludeAdult?: boolean) => {
+		setIsLoading(true);
+		setErrorMessage("");
+
+		try {
+			const params = new URLSearchParams();
+			if (minPrice) params.append('minPrice', minPrice.toString());
+			if (maxPrice) params.append('maxPrice', maxPrice.toString());
+			if (category) params.append('category', category);
+			if (excludeAdult) params.append('excludeAdult', excludeAdult.toString());
+			params.append('limit', '50');
+
+			const response = await fetch(`/api/random-items?${params}`);
+			if (!response.ok) throw new Error('商品の取得に失敗しました');
+
+			const data = await response.json();
 			setItems(data.items);
-
-			// 簡易ルーレット演出
-			let current = 0;
-			const total = data.items.length;
-			const totalDurationMs = 2500;
-			const start = Date.now();
-			const timer = setInterval(() => {
-				const elapsed = Date.now() - start;
-				const progress = Math.min(elapsed / totalDurationMs, 1);
-				current = (current + 1) % total;
-				setSelectedIndex(current);
-				if (progress >= 1) {
-					clearInterval(timer);
-					setIsSpinning(false);
-				}
-			}, 80);
 		} catch (error) {
-			console.error("Spin error:", error);
-			setErrorMessage("取得に失敗しました。時間を置いて再度お試しください。");
-			setIsSpinning(false);
+			console.error('Fetch error:', error);
+			setErrorMessage('商品の取得に失敗しました。もう一度お試しください。');
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
-	const resetGame = () => {
-		setItems([]);
-		setSelectedIndex(null);
-		setHasStarted(false);
+	// ルーレット開始
+	const handleSpin = async () => {
+		if (items.length === 0) {
+			setErrorMessage('商品がありません。条件を変更してお試しください。');
+			return;
+		}
+
+		setHasStarted(true);
+		setIsSpinning(true);
 		setErrorMessage("");
+		setSelectedIndex(-1);
+
+		try {
+			// ルーレット回転音を開始
+			if (spinAudioRef.current) {
+				spinAudioRef.current.currentTime = 0;
+				spinAudioRef.current.play().catch(console.error);
+			}
+
+			const data = { items };
+			const pick = Math.floor(Math.random() * data.items.length);
+
+			// カード切り替えの回数（20〜30回）
+			const totalSwitches = 20 + Math.floor(Math.random() * 11);
+			let currentSwitch = 0;
+
+			// ワンテンポ遅れてから開始
+			await new Promise(resolve => setTimeout(resolve, 500));
+
+			// カードをバババババと切り替える
+			const switchInterval = setInterval(() => {
+				currentSwitch++;
+				
+				// ランダムなカードを表示（最後の数回は当選商品に近づける）
+				let displayIndex;
+				if (currentSwitch > totalSwitches - 5) {
+					// 最後の5回は当選商品の周辺を表示
+					const variation = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
+					displayIndex = Math.max(0, Math.min(data.items.length - 1, pick + variation));
+				} else {
+					// それ以外はランダム
+					displayIndex = Math.floor(Math.random() * data.items.length);
+				}
+				
+				setCurrentDisplayIndex(displayIndex);
+
+				// 最後の切り替えで当選商品を表示
+				if (currentSwitch >= totalSwitches) {
+					clearInterval(switchInterval);
+					setCurrentDisplayIndex(pick);
+					setSelectedIndex(pick);
+					setIsSpinning(false);
+
+					// ルーレット回転音を停止
+					if (spinAudioRef.current) {
+						spinAudioRef.current.pause();
+						spinAudioRef.current.currentTime = 0;
+					}
+
+					// 当選音を再生
+					if (winAudioRef.current) {
+						winAudioRef.current.currentTime = 0;
+						winAudioRef.current.play().catch(console.error);
+					}
+				}
+			}, 100); // 100ms間隔で切り替え
+
+		} catch (error) {
+			console.error("Spin error:", error);
+			setErrorMessage('ルーレットの実行中にエラーが発生しました。');
+			setIsSpinning(false);
+
+			// エラー時も音を停止
+			if (spinAudioRef.current) {
+				spinAudioRef.current.pause();
+				spinAudioRef.current.currentTime = 0;
+			}
+		}
 	};
 
+	// リセット
+	const handleReset = () => {
+		setHasStarted(false);
+		setSelectedIndex(-1);
+		setErrorMessage("");
+		setIsSpinning(false);
+		setCurrentDisplayIndex(0);
+
+		// 音を停止
+		if (spinAudioRef.current) {
+			spinAudioRef.current.pause();
+			spinAudioRef.current.currentTime = 0;
+		}
+		if (winAudioRef.current) {
+			winAudioRef.current.pause();
+			winAudioRef.current.currentTime = 0;
+		}
+
+		// 初期商品を再読み込み
+		const loadInitialItems = async () => {
+			try {
+				const params = new URLSearchParams({
+					minPrice: '1',
+					maxPrice: '10000',
+					category: 'all',
+					excludeAdult: 'true',
+					limit: '50'
+				});
+
+				const response = await fetch(`/api/random-items?${params}`);
+				if (!response.ok) throw new Error('商品の取得に失敗しました');
+
+				const data = await response.json();
+				setItems(data.items);
+			} catch (error) {
+				console.error('Reset load error:', error);
+				setErrorMessage('商品の再読み込みに失敗しました。');
+			}
+		};
+
+		loadInitialItems();
+	};
+
+	// 現在表示中の商品
+	const currentItem = items[currentDisplayIndex];
+
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-			<div className="container mx-auto px-6 py-8">
-				{/* ヘッダー */}
-				<header className="text-center mb-12">
-					<h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-						Amazon ランダム商品（条件付き）
-					</h1>
-					<p className="text-gray-600 text-lg max-w-2xl mx-auto">
-						罰ゲーム・サプライズに最適！条件を設定してランダム商品を表示
-					</p>
-				</header>
-
-				{/* フィルターセクション */}
-				<div className="max-w-4xl mx-auto mb-12">
-					<div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-						{/* 価格スライダー */}
-						<div className="lg:col-span-2">
-							<PriceSlider
-								minPrice={minPrice}
-								maxPrice={maxPrice}
-								onChange={handlePriceChange}
-							/>
+		<main className="min-h-screen bg-gray-100">
+			{/* メインコンテンツ */}
+			<div className={`w-full ${hasStarted ? 'py-4 pb-24' : 'py-12 pb-24'}`}>
+				<div className={`${hasStarted ? 'w-full' : 'max-w-6xl mx-auto px-6'}`}>
+					{/* 使い方説明 - ルーレット開始後は非表示 */}
+					{!hasStarted && (
+						<div className="text-center mb-6">
+							<h3 className="text-lg font-semibold text-black mb-2">🎯 使い方</h3>
+							<p className="text-sm text-gray-600 leading-relaxed">
+								1. 左上の「条件で探す」から価格やカテゴリを設定<br/>
+								2. 「ルーレット開始」ボタンをクリック<br/>
+								3. 最後に表示された商品を購入してください！
+							</p>
 						</div>
+					)}
 
-						{/* カテゴリとオプション */}
-						<div className="space-y-6">
-							<div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-								<label className="text-lg font-bold text-gray-900 mb-3 block">カテゴリ</label>
-								<select
-									className="w-full border border-gray-200 rounded-lg px-4 py-3 bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-									value={category}
-									onChange={(e) => setCategory(e.target.value)}
-								>
-									{categories.map((c) => (
-										<option key={c.value} value={c.value}>
-											{c.label}
-										</option>
-									))}
-								</select>
-							</div>
-
-							<div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
-								<div className="flex items-center gap-3">
-									<input
-										id="exclude-adult"
-										type="checkbox"
-										checked={excludeAdult}
-										onChange={(e) => setExcludeAdult(e.target.checked)}
-										className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-									/>
-									<label htmlFor="exclude-adult" className="text-lg font-medium text-gray-900">
-										成人向けを除外
-									</label>
-								</div>
-							</div>
-						</div>
-					</div>
-
-					{/* アクションボタン */}
-					<div className="flex gap-4 mt-8">
-						<button
-							onClick={spin}
-							disabled={isSpinning}
-							className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl px-8 py-4 disabled:opacity-60 font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-200"
-						>
-							{isSpinning ? "🎲 回転中..." : "🎲 ルーレット開始"}
-						</button>
-						{hasStarted && (
+					{/* ルーレット開始ボタン */}
+					<div className={`text-center ${hasStarted ? 'mb-4' : 'mb-8'}`}>
+						<div className="flex justify-center gap-4">
 							<button
-								onClick={resetGame}
-								className="bg-gray-500 hover:bg-gray-600 text-white rounded-xl px-8 py-4 font-bold shadow-lg hover:shadow-xl transition-all duration-200"
+								onClick={handleSpin}
+								disabled={isSpinning || items.length === 0}
+								className={`px-8 py-4 rounded-xl font-bold text-lg transition-all duration-200 ${
+									isSpinning || items.length === 0
+										? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+										: 'bg-gradient-to-r from-[#FFA41C] to-[#FF9900] hover:from-[#FF9900] hover:to-[#FF8C00] text-white shadow-lg hover:shadow-xl transform hover:scale-105'
+								}`}
 							>
-								リセット
+								{isSpinning ? "🎲 抽選中..." : "🎰 ルーレット開始"}
 							</button>
-						)}
-					</div>
-				</div>
-
-				{/* エラーメッセージ */}
-				{errorMessage && (
-					<div className="max-w-4xl mx-auto mb-8">
-						<div className="bg-red-50 border border-red-200 rounded-xl p-4">
-							<p className="text-red-600 text-center">{errorMessage}</p>
-						</div>
-					</div>
-				)}
-
-				{/* ルーレット開始前のティッカー表示 */}
-				{!hasStarted && <ProductTicker />}
-
-				{/* ルーレット結果表示 */}
-				{hasStarted && (
-					<div className="max-w-6xl mx-auto">
-						<section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-							{items.map((item, idx) => (
-								<div
-									key={item.asin || idx}
-									className={`bg-white rounded-xl shadow-lg border border-gray-100 p-4 transition-all duration-300 ${
-										selectedIndex === idx ? "ring-4 ring-blue-500 scale-105 shadow-2xl" : "hover:shadow-xl"
+							{hasStarted && (
+								<button
+									onClick={handleReset}
+									disabled={isSpinning}
+									className={`px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
+										isSpinning
+											? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+											: 'bg-gray-500 hover:bg-gray-600 text-white shadow-lg hover:shadow-xl'
 									}`}
 								>
-									<div className="aspect-square relative mb-4 bg-gray-50 rounded-lg overflow-hidden">
-										{item.image ? (
-											/* eslint-disable @next/next/no-img-element */
-											<img src={item.image} alt={item.title} className="object-contain w-full h-full" />
+									リセット
+								</button>
+							)}
+						</div>
+					</div>
+
+					{/* 商品ティッカー - ルーレット開始前のみ表示 */}
+					{!hasStarted && (
+						<div className="mb-8">
+							<ProductTicker />
+						</div>
+					)}
+
+					{/* 抽選条件表示 - ルーレット開始後のみ表示 */}
+					{hasStarted && (
+						<div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+							<h3 className="text-sm font-semibold text-blue-800 mb-2">🎯 抽選条件</h3>
+							<div className="flex flex-wrap gap-3 text-sm text-blue-700">
+								<span className="bg-blue-100 px-2 py-1 rounded">
+									💰 価格: ¥{currentFilters.minPrice.toLocaleString()} ～ ¥{currentFilters.maxPrice.toLocaleString()}
+								</span>
+								<span className="bg-blue-100 px-2 py-1 rounded">
+									📂 カテゴリ: {categories.find(cat => cat.value === currentFilters.category)?.label || '全カテゴリ'}
+								</span>
+								{currentFilters.excludeAdult && (
+									<span className="bg-blue-100 px-2 py-1 rounded">
+										🔒 成人向け除外
+									</span>
+								)}
+							</div>
+						</div>
+					)}
+
+					{/* エラーメッセージ */}
+					{errorMessage && (
+						<div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+							{errorMessage}
+						</div>
+					)}
+
+					{/* ルーレット結果表示 */}
+					{hasStarted && (
+						<div className="w-full flex justify-center">
+							<div className="w-full max-w-4xl">
+								{/* 中央固定型ルーレット */}
+								<div className="relative bg-gray-100 rounded-xl p-6">
+									<div className="flex items-center justify-center mb-6">
+										<h2 className="text-2xl font-bold text-[#131921]">
+											{isSpinning ? "🎲 抽選中..." : "🎯 当選商品"}
+										</h2>
+									</div>
+									
+									{/* カード表示エリア */}
+									<div className="flex items-center justify-center">
+																					{currentItem ? (
+											<div className="w-[300px] h-[320px] flex items-center justify-center">
+												<div 
+													className={`bg-white rounded-xl shadow-lg border-2 p-3 w-full h-full transition-all duration-300 ${
+														!isSpinning && selectedIndex === currentDisplayIndex
+															? "border-[#FF9900] shadow-2xl scale-105 ring-4 ring-[#FF9900]/30" 
+															: "border-gray-200"
+													}`}
+												>
+													<div className="relative mb-2 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg overflow-hidden flex items-center justify-center" style={{ height: '55%' }}>
+														{currentItem.image ? (
+															<>
+																{/* eslint-disable @next/next/no-img-element */}
+																<img 
+																	src={currentItem.image} 
+																	alt={currentItem.title} 
+																	className="object-contain w-full h-full p-2" 
+																	onError={(e) => {
+																		const target = e.target as HTMLImageElement;
+																		target.style.display = 'none';
+																		target.nextElementSibling?.classList.remove('hidden');
+																	}}
+																/>
+																<div className="hidden absolute inset-0 flex items-center justify-center text-xs text-gray-500 bg-gray-50">
+																	<div className="text-center">
+																		<div className="text-2xl mb-1">📦</div>
+																		<div>商品画像</div>
+																	</div>
+																</div>
+															</>
+														) : (
+															<div className="w-full h-full flex items-center justify-center text-xs text-gray-500">
+																<div className="text-center">
+																	<div className="text-2xl mb-1">📦</div>
+																	<div>商品画像</div>
+																</div>
+															</div>
+														)}
+													</div>
+													<div className="text-sm font-bold line-clamp-3 min-h-[2rem] mb-1 text-[#131921]">{currentItem.title}</div>
+													{currentItem.price && <div className="text-xl font-bold text-[#B12704] mb-2">¥{currentItem.price.toLocaleString()}</div>}
+													{!isSpinning && selectedIndex === currentDisplayIndex && currentItem.link && (
+														<a
+															href={currentItem.link}
+															target="_blank"
+															rel="noopener noreferrer"
+															className="inline-block w-full bg-[#FFA41C] hover:bg-[#FF9900] text-black text-center rounded-md px-3 py-1.5 font-semibold text-sm"
+														>
+															商品ページへ
+														</a>
+													)}
+												</div>
+											</div>
 										) : (
-											<div className="w-full h-full flex items-center justify-center text-xs text-gray-500">No Image</div>
+											<div className="text-center text-gray-500">
+												<div className="text-4xl mb-4">🎲</div>
+												<div>ルーレット開始ボタンを押してください</div>
+											</div>
 										)}
 									</div>
-									<div className="text-sm font-bold line-clamp-2 min-h-[2.5rem] mb-2">{item.title}</div>
-									{item.price && <div className="text-lg font-bold text-blue-600 mb-3">¥{item.price.toLocaleString()}</div>}
-									{item.link && (
-										<a
-											href={item.link}
-											target="_blank"
-											rel="noopener noreferrer"
-											className="inline-block w-full bg-blue-600 hover:bg-blue-700 text-white text-center rounded-lg px-4 py-2 font-medium transition-colors"
-										>
-											商品ページへ
-										</a>
-									)}
 								</div>
-							))}
-						</section>
-					</div>
-				)}
-
-				{/* フッター */}
-				<footer className="text-center mt-16 text-gray-500 text-sm">
-					当サイトは Amazonアソシエイト を利用しています。表示価格・在庫は遷移先をご確認ください。
-				</footer>
+							</div>
+						</div>
+					)}
+				</div>
 			</div>
-		</div>
+
+			{/* フッター */}
+			<footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-4 z-50">
+				<div className="max-w-6xl mx-auto px-6 text-center text-sm text-gray-600">
+					当サイトは Amazonアソシエイトを利用しています。表示価格・在庫は遷移先をご確認ください。
+				</div>
+			</footer>
+		</main>
 	);
 }
+

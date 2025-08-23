@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import * as Slider from "@radix-ui/react-slider";
+import { useEffect, useState } from "react";
 
 interface PriceSliderProps {
 	minPrice: number;
@@ -8,114 +9,56 @@ interface PriceSliderProps {
 }
 
 export default function PriceSlider({ minPrice, maxPrice, onChange }: PriceSliderProps) {
-	const [localMin, setLocalMin] = useState(minPrice);
-	const [localMax, setLocalMax] = useState(maxPrice);
-	const [isDragging, setIsDragging] = useState<"min" | "max" | null>(null);
+	const [values, setValues] = useState<[number, number]>([minPrice, maxPrice]);
 
-	// 価格範囲の設定
-	const priceRange = {
-		min: 1,
-		max: 10000,
-		step: 100,
-	};
+	const priceRange = { min: 1, max: 100000, step: 100 } as const;
 
 	useEffect(() => {
-		setLocalMin(minPrice);
-		setLocalMax(maxPrice);
+		setValues([minPrice, maxPrice]);
 	}, [minPrice, maxPrice]);
 
-	const handleMinChange = (value: number) => {
-		const newMin = Math.min(value, localMax - priceRange.step);
-		setLocalMin(newMin);
-		onChange(newMin, localMax);
-	};
-
-	const handleMaxChange = (value: number) => {
-		const newMax = Math.max(value, localMin + priceRange.step);
-		setLocalMax(newMax);
-		onChange(localMin, newMax);
-	};
-
-	const getMinPosition = () => {
-		return ((localMin - priceRange.min) / (priceRange.max - priceRange.min)) * 100;
-	};
-
-	const getMaxPosition = () => {
-		return ((localMax - priceRange.min) / (priceRange.max - priceRange.min)) * 100;
-	};
-
-	const handleMouseDown = (type: "min" | "max") => {
-		setIsDragging(type);
-	};
-
-	const handleMouseMove = useCallback((e: MouseEvent) => {
-		if (!isDragging) return;
-
-		const target = e.target as HTMLElement;
-		const rect = target.getBoundingClientRect();
-		const x = e.clientX - rect.left;
-		const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
-		const value = Math.round(
-			priceRange.min + (percentage / 100) * (priceRange.max - priceRange.min)
-		);
-
-		if (isDragging === "min") {
-			handleMinChange(value);
-		} else {
-			handleMaxChange(value);
+	const handleChange = (v: number[]) => {
+		if (v.length === 2) {
+			const [min, max] = v as [number, number];
+			setValues([min, max]);
+			onChange(min, max);
 		}
-	}, [isDragging, localMin, localMax, priceRange]);
-
-	const handleMouseUp = useCallback(() => {
-		setIsDragging(null);
-	}, []);
-
-	useEffect(() => {
-		if (isDragging) {
-			document.addEventListener("mousemove", handleMouseMove);
-			document.addEventListener("mouseup", handleMouseUp);
-			return () => {
-				document.removeEventListener("mousemove", handleMouseMove);
-				document.removeEventListener("mouseup", handleMouseUp);
-			};
-		}
-	}, [isDragging, handleMouseMove, handleMouseUp]);
+	};
 
 	return (
 		<div className="w-full">
 			<div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
 				<div className="mb-4">
-					<h3 className="text-lg font-bold text-gray-900 mb-2">Price Range</h3>
+					<h3 className="text-lg font-bold text-gray-900 mb-2">価格</h3>
 					<div className="text-2xl font-bold text-gray-900">
-						¥{localMin.toLocaleString()} - ¥{localMax.toLocaleString()}
+						¥{values[0].toLocaleString()} - {values[1] >= 100000 ? "上限なし" : `¥${values[1].toLocaleString()}`}
 					</div>
 				</div>
-				<div className="relative h-2 bg-gray-200 rounded-full">
-					{/* 選択範囲の背景 */}
-					<div
-						className="absolute h-full bg-blue-500 rounded-full"
-						style={{
-							left: `${getMinPosition()}%`,
-							width: `${getMaxPosition() - getMinPosition()}%`,
-						}}
+
+				<Slider.Root
+					className="relative flex items-center select-none touch-none w-full h-6"
+					min={priceRange.min}
+					max={priceRange.max}
+					step={priceRange.step}
+					value={values}
+					onValueChange={handleChange}
+					aria-label="Price range"
+				>
+					{/* Track */}
+					<Slider.Track className="relative h-2 w-full rounded-full bg-gray-200">
+						<Slider.Range className="absolute h-full rounded-full bg-[#FFA41C]" />
+					</Slider.Track>
+
+					{/* Thumbs */}
+					<Slider.Thumb
+						className="block w-5 h-5 bg-[#FFA41C] border-2 border-white rounded-full shadow-md hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF9900]"
+						aria-label="Minimum price"
 					/>
-					{/* 最小値ハンドル */}
-					<div
-						className={`absolute top-1/2 w-5 h-5 bg-blue-500 border-2 border-white rounded-full shadow-lg transform -translate-y-1/2 -translate-x-1/2 cursor-pointer transition-all ${
-							isDragging === "min" ? "scale-110 ring-2 ring-blue-200" : "hover:scale-105"
-						}`}
-						style={{ left: `${getMinPosition()}%` }}
-						onMouseDown={() => handleMouseDown("min")}
+					<Slider.Thumb
+						className="block w-5 h-5 bg-[#FFA41C] border-2 border-white rounded-full shadow-md hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#FF9900]"
+						aria-label="Maximum price"
 					/>
-					{/* 最大値ハンドル */}
-					<div
-						className={`absolute top-1/2 w-5 h-5 bg-blue-500 border-2 border-white rounded-full shadow-lg transform -translate-y-1/2 -translate-x-1/2 cursor-pointer transition-all ${
-							isDragging === "max" ? "scale-110 ring-2 ring-blue-200" : "hover:scale-105"
-						}`}
-						style={{ left: `${getMaxPosition()}%` }}
-						onMouseDown={() => handleMouseDown("max")}
-					/>
-				</div>
+				</Slider.Root>
 			</div>
 		</div>
 	);
