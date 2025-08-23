@@ -24,14 +24,41 @@ export default function Home() {
 
 	// 効果音の初期化
 	useEffect(() => {
-		// ルーレット回転音（じゃらららら）
-		spinAudioRef.current = new Audio('/sounds/spin.mp3');
-		spinAudioRef.current.loop = true;
-		spinAudioRef.current.volume = 0.3;
+		// 音声ファイルの安全な初期化
+		const initAudio = () => {
+			try {
+				// ルーレット回転音（じゃらららら）
+				spinAudioRef.current = new Audio('/sounds/spin.mp3');
+				spinAudioRef.current.loop = true;
+				spinAudioRef.current.volume = 0.3;
+				
+				// エラーイベントのハンドリング
+				spinAudioRef.current.addEventListener('error', () => {
+					console.log('ルーレット音声ファイルが見つかりません');
+					spinAudioRef.current = null;
+				});
+			} catch (error) {
+				console.log('ルーレット音声の初期化に失敗:', error);
+				spinAudioRef.current = null;
+			}
 
-		// 当選音
-		winAudioRef.current = new Audio('/sounds/win.mp3');
-		winAudioRef.current.volume = 0.5;
+			try {
+				// 当選音
+				winAudioRef.current = new Audio('/sounds/win.mp3');
+				winAudioRef.current.volume = 0.5;
+				
+				// エラーイベントのハンドリング
+				winAudioRef.current.addEventListener('error', () => {
+					console.log('当選音声ファイルが見つかりません');
+					winAudioRef.current = null;
+				});
+			} catch (error) {
+				console.log('当選音声の初期化に失敗:', error);
+				winAudioRef.current = null;
+			}
+		};
+
+		initAudio();
 
 		// クリーンアップ
 		return () => {
@@ -138,8 +165,14 @@ export default function Home() {
 		try {
 			// ルーレット回転音を開始
 			if (spinAudioRef.current) {
-				spinAudioRef.current.currentTime = 0;
-				spinAudioRef.current.play().catch(console.error);
+				try {
+					spinAudioRef.current.currentTime = 0;
+					spinAudioRef.current.play().catch(() => {
+						console.log('音声再生がブロックされました（ユーザー操作が必要）');
+					});
+				} catch (error) {
+					console.log('音声再生エラー:', error);
+				}
 			}
 
 			const data = { items };
@@ -184,8 +217,14 @@ export default function Home() {
 
 					// 当選音を再生
 					if (winAudioRef.current) {
-						winAudioRef.current.currentTime = 0;
-						winAudioRef.current.play().catch(console.error);
+						try {
+							winAudioRef.current.currentTime = 0;
+							winAudioRef.current.play().catch(() => {
+								console.log('当選音の再生がブロックされました');
+							});
+						} catch (error) {
+							console.log('当選音再生エラー:', error);
+						}
 					}
 				}
 			}, 100); // 100ms間隔で切り替え
@@ -197,8 +236,12 @@ export default function Home() {
 
 			// エラー時も音を停止
 			if (spinAudioRef.current) {
-				spinAudioRef.current.pause();
-				spinAudioRef.current.currentTime = 0;
+				try {
+					spinAudioRef.current.pause();
+					spinAudioRef.current.currentTime = 0;
+				} catch (error) {
+					console.log('エラー時の音声停止に失敗:', error);
+				}
 			}
 		}
 	};
@@ -213,12 +256,20 @@ export default function Home() {
 
 		// 音を停止
 		if (spinAudioRef.current) {
-			spinAudioRef.current.pause();
-			spinAudioRef.current.currentTime = 0;
+			try {
+				spinAudioRef.current.pause();
+				spinAudioRef.current.currentTime = 0;
+			} catch (error) {
+				console.log('ルーレット音停止エラー:', error);
+			}
 		}
 		if (winAudioRef.current) {
-			winAudioRef.current.pause();
-			winAudioRef.current.currentTime = 0;
+			try {
+				winAudioRef.current.pause();
+				winAudioRef.current.currentTime = 0;
+			} catch (error) {
+				console.log('当選音停止エラー:', error);
+			}
 		}
 
 		// 初期商品を再読み込み
