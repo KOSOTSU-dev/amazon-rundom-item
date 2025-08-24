@@ -68,8 +68,8 @@ export default function TopNav() {
 
 						{open && (
 							<div className="absolute left-0 top-full mt-3 bg-white text-black shadow-2xl border border-gray-200 rounded-xl w-[min(47.5vw,28rem)] overflow-hidden">
-								<div className="p-5 flex flex-col gap-6 max-h-[70vh] overflow-auto">
-									<div className="bg-white rounded-md shadow p-4 border border-gray-200">
+								<div className="p-4 flex flex-col gap-4 max-h-[70vh] overflow-auto">
+									<div className="bg-white rounded-md shadow p-3 border border-gray-200">
 										<label className="text-sm font-bold text-[#131921] mb-2 block">価格</label>
 										<PriceSlider
 											minPrice={minPrice}
@@ -80,7 +80,7 @@ export default function TopNav() {
 											}}
 										/>
 									</div>
-									<div className="bg-white rounded-md shadow p-4 border border-gray-200">
+									<div className="bg-white rounded-md shadow p-3 border border-gray-200">
 										<label className="text-sm font-bold text-[#131921] mb-2 block">カテゴリ</label>
 										<select
 											className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white focus:outline-none focus-visible:outline-none focus:ring-0 focus:border-[#FF9900] transition"
@@ -96,7 +96,7 @@ export default function TopNav() {
 											<option value="beauty">コスメ</option>
 										</select>
 									</div>
-									<div className="bg-white rounded-md shadow p-4 border border-gray-200">
+									<div className="bg-white rounded-md shadow p-3 border border-gray-200">
 										<label className="flex items-center gap-3">
 											<input
 												type="checkbox"

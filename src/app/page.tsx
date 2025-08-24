@@ -208,11 +208,11 @@ export default function Home() {
 
 					{/* ルーレット開始ボタン */}
 					<div className={`text-center ${hasStarted ? 'mb-4' : 'mb-8'}`}>
-						<div className="flex justify-center gap-4">
+						<div className="flex justify-center gap-2 sm:gap-4 flex-col sm:flex-row">
 							<button
 								onClick={handleSpin}
 								disabled={isSpinning || items.length === 0}
-								className={`px-8 py-4 rounded-xl font-bold text-lg transition-all duration-200 ${
+								className={`px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-base sm:text-lg transition-all duration-200 ${
 									isSpinning || items.length === 0
 										? 'bg-gray-300 text-gray-500 cursor-not-allowed'
 										: 'bg-gradient-to-r from-[#FFA41C] to-[#FF9900] hover:from-[#FF9900] hover:to-[#FF8C00] text-white shadow-lg hover:shadow-xl transform hover:scale-105'
@@ -224,7 +224,7 @@ export default function Home() {
 								<button
 									onClick={handleReset}
 									disabled={isSpinning}
-									className={`px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
+									className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold text-sm sm:text-base transition-all duration-200 ${
 										isSpinning
 											? 'bg-gray-300 text-gray-500 cursor-not-allowed'
 											: 'bg-gray-500 hover:bg-gray-600 text-white shadow-lg hover:shadow-xl'
@@ -245,17 +245,16 @@ export default function Home() {
 
 					{/* 抽選条件表示 - ルーレット開始後のみ表示 */}
 					{hasStarted && (
-						<div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-							<h3 className="text-sm font-semibold text-blue-800 mb-2">🎯 抽選条件</h3>
-							<div className="flex flex-wrap gap-3 text-sm text-blue-700">
-								<span className="bg-blue-100 px-2 py-1 rounded">
-									💰 価格: ¥{currentFilters.minPrice.toLocaleString()} ～ ¥{currentFilters.maxPrice.toLocaleString()}
+						<div className="mb-1 bg-blue-50 border border-blue-200 rounded-lg p-2">
+							<div className="flex flex-wrap items-center gap-2 text-xs text-blue-700">
+								<span className="bg-blue-100 px-2 py-1 rounded whitespace-nowrap">
+									💰 ¥{currentFilters.minPrice.toLocaleString()}～¥{currentFilters.maxPrice.toLocaleString()}
 								</span>
-								<span className="bg-blue-100 px-2 py-1 rounded">
-									📂 カテゴリ: {categories.find(cat => cat.value === currentFilters.category)?.label || '全カテゴリ'}
+								<span className="bg-blue-100 px-2 py-1 rounded whitespace-nowrap">
+									📂 {categories.find(cat => cat.value === currentFilters.category)?.label || '全カテゴリ'}
 								</span>
 								{currentFilters.excludeAdult && (
-									<span className="bg-blue-100 px-2 py-1 rounded">
+									<span className="bg-blue-100 px-2 py-1 rounded whitespace-nowrap">
 										🔒 成人向け除外
 									</span>
 								)}
@@ -275,9 +274,9 @@ export default function Home() {
 						<div className="w-full flex justify-center">
 							<div className="w-full max-w-4xl">
 								{/* 中央固定型ルーレット */}
-								<div className="relative bg-gray-100 rounded-xl p-6">
-									<div className="flex items-center justify-center mb-6">
-										<h2 className="text-2xl font-bold text-[#131921]">
+								<div className="relative bg-gray-100 rounded-xl pt-2 pr-4 sm:pr-6 pb-6 pl-4 sm:pl-6">
+									<div className="flex items-center justify-center mb-4 sm:mb-6">
+										<h2 className="text-xl sm:text-2xl font-bold text-[#131921]">
 											{isSpinning ? "🎲 抽選中..." : "🎯 当選商品"}
 										</h2>
 									</div>
@@ -285,7 +284,7 @@ export default function Home() {
 									{/* カード表示エリア */}
 									<div className="flex items-center justify-center">
 																					{currentItem ? (
-											<div className="w-[300px] h-[320px] flex items-center justify-center">
+											<div className="w-[280px] sm:w-[300px] h-[300px] sm:h-[320px] flex items-center justify-center">
 												<div 
 													className={`bg-white rounded-xl shadow-lg border-2 p-3 w-full h-full transition-all duration-300 ${
 														!isSpinning && selectedIndex === currentDisplayIndex
