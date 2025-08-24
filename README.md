@@ -32,10 +32,20 @@ npm install
 
 ```env
 # Amazon Associate Tag
+# 本番環境では実際のAmazon Associate Tagを設定してください
+# 開発時は任意の値で構いません
 NEXT_PUBLIC_AMAZON_ASSOCIATE_TAG=your-amazon-associate-tag-here
+
+# 環境設定
+NODE_ENV=development
 ```
 
-**注意**: Amazon Associate Tag は本番環境での収益化に必要です。開発時は任意の値で構いません。
+**重要**:
+
+- Amazon Associate Tag は本番環境での収益化に必要です
+- 開発時は任意の値で構いません
+- `.env.local` ファイルは `.gitignore` に含まれているため、Git にコミットされません
+- 本番環境では必ず実際の Amazon Associate Tag を設定してください
 
 ### 3. 開発サーバーの起動
 
@@ -54,9 +64,11 @@ npm run dev
 
 ## セキュリティ
 
-- Amazon Associate Tag は環境変数で管理
-- 商品データは公開情報のみ使用
-- API キーやパスワードは含まれていません
+- **Amazon Associate Tag**: 環境変数 `NEXT_PUBLIC_AMAZON_ASSOCIATE_TAG` で管理
+- **商品データ**: 公開情報のみ使用（Amazon 商品ページの公開データ）
+- **機密情報**: API キーやパスワードは含まれていません
+- **環境変数**: `.env.local` ファイルは `.gitignore` で除外され、Git にコミットされません
+- **本番環境**: 必ず実際の Amazon Associate Tag を環境変数で設定してください
 
 ## ライセンス
 
