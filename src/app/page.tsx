@@ -192,7 +192,7 @@ export default function Home() {
 	return (
 		<main className="min-h-screen bg-gray-100">
 			{/* メインコンテンツ */}
-			<div className={`w-full ${hasStarted ? 'py-4 pb-24' : 'py-12 pb-24'}`}>
+			<div className={`w-full ${hasStarted ? 'py-4 pb-24' : 'py-4 pb-24'}`}>
 				<div className={`${hasStarted ? 'w-full' : 'max-w-6xl mx-auto px-6'}`}>
 					{/* 使い方説明 - ルーレット開始後は非表示 */}
 					{!hasStarted && (
